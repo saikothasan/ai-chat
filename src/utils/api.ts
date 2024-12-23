@@ -1,20 +1,28 @@
 const API_URL = 'https://hello-ai.aicodegen.workers.dev/';
 
-export async function sendMessage(prompt: string): Promise<string> {
+export async function sendMessage(prompt: string, timeoutMs = 5000): Promise<string> {
   try {
     const url = new URL(API_URL);
     url.searchParams.append('prompt', prompt);
 
-    const response = await fetch(url.toString());
+    // Create a timeout promise
+    const timeout = new Promise<string>((_, reject) => 
+      setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
+    );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    // Fetch the API response with timeout
+    const fetchPromise = fetch(url.toString()).then(async response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      return data.response || 'Sorry, I could not process that.';
+    });
 
-    const data = await response.json();
-    return data.response || 'Sorry, I could not process that.';
+    // Wait for either fetch or timeout
+    return await Promise.race([fetchPromise, timeout]);
   } catch (error) {
     console.error('API Error:', error);
-    throw new Error('Failed to communicate with the AI service');
+    return 'Failed to communicate with the AI service. Please try again later.';
   }
 }
