@@ -1,6 +1,6 @@
 const API_URL = 'https://hello-ai.aicodegen.workers.dev/';
 
-export async function sendMessage(prompt: string, timeoutMs = 5000): Promise<string> {
+export async function sendMessage(prompt: string, timeoutMs = 50000): Promise<string> {
   try {
     const url = new URL(API_URL);
     url.searchParams.append('prompt', prompt);
