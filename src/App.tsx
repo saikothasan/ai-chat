@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ChatHeader } from './components/ChatHeader';
 import { ChatMessages } from './components/ChatMessages';
 import { ChatInput } from './components/ChatInput';
@@ -12,28 +12,44 @@ function App() {
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = async (text: string) => {
-    // Add user message
-    setMessages(prev => [...prev, createMessage(text, false)]);
+  const handleSendMessage = useCallback(async (text: string) => {
+    // Ensure the message is not empty or whitespace
+    if (!text.trim()) return;
+
+    // Add user message optimistically
+    const userMessage = createMessage(text, false);
+    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
     try {
       const response = await sendMessage(text);
-      setMessages(prev => [...prev, createMessage(response, true)]);
+
+      // Add AI response
+      const aiMessage = createMessage(response, true);
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      setMessages(prev => [...prev, 
-        createMessage('Sorry, I encountered an error. Please try again.', true)
-      ]);
       console.error('Error sending message:', error);
+
+      // Add error response
+      const errorMessage = createMessage(
+        'Sorry, I encountered an error. Please try again later.',
+        true
+      );
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header */}
       <ChatHeader />
+
+      {/* Messages Section */}
       <ChatMessages messages={messages} isLoading={isLoading} />
+
+      {/* Input Section */}
       <ChatInput onSend={handleSendMessage} disabled={isLoading} />
     </div>
   );
