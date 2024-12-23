@@ -5,24 +5,24 @@ export async function sendMessage(prompt: string, timeoutMs = 5000): Promise<str
     const url = new URL(API_URL);
     url.searchParams.append('prompt', prompt);
 
-    // Create a timeout promise
-    const timeout = new Promise<string>((_, reject) => 
+    const timeout = new Promise<string>((_, reject) =>
       setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
     );
 
-    // Fetch the API response with timeout
     const fetchPromise = fetch(url.toString()).then(async response => {
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
-      return data.response || 'Sorry, I could not process that.';
+      if (!data.response) {
+        throw new Error('Invalid API response structure');
+      }
+      return data.response;
     });
 
-    // Wait for either fetch or timeout
     return await Promise.race([fetchPromise, timeout]);
-  } catch (error) {
-    console.error('API Error:', error);
-    return 'Failed to communicate with the AI service. Please try again later.';
+  } catch (error: any) {
+    console.error('API Error:', error.message, error.stack);
+    throw new Error('Failed to communicate with the AI service');
   }
 }
